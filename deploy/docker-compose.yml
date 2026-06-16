@@ -31,7 +31,46 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      
+    environment:
+      RABBITMQ_DEFAULT_USER: telemetry
+      RABBITMQ_DEFAULT_PASS: telemetry-dev-2026  
+  
+  ingestion-api:
+    build:
+      context: ..
+      dockerfile: src/Telemetry.Ingestion.Api/Dockerfile
+    image: telemetry-ingestion-api:dev
+    container_name: telemetry-ingestion-api
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: telemetry
+      RabbitMq__Password: telemetry-dev-2026
+    ports:
+      - "8080:8080"
+
+  worker:
+    build:
+      context: ..
+      dockerfile: src/Telemetry.Worker/Dockerfile
+    image: telemetry-worker:dev
+    container_name: telemetry-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: "Host=postgres;Database=telemetry;Username=telemetry;Password=telemetry-dev-2026"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: telemetry
+      RabbitMq__Password: telemetry-dev-2026
+
+
 volumes:
   postgres-data:
   rabbitmq-data:
