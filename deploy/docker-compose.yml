@@ -33,7 +33,21 @@ services:
       retries: 5
     environment:
       RABBITMQ_DEFAULT_USER: telemetry
-      RABBITMQ_DEFAULT_PASS: telemetry-dev-2026  
+      RABBITMQ_DEFAULT_PASS: telemetry-dev-2026
+      
+  redis:
+    image: redis:7-alpine
+    container_name: telemetry-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
   
   ingestion-api:
     build:
@@ -45,10 +59,13 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       RabbitMq__Host: rabbitmq
       RabbitMq__Username: telemetry
       RabbitMq__Password: telemetry-dev-2026
+      Redis__ConnectionString: "redis:6379"
     ports:
       - "8080:8080"
 
@@ -74,3 +91,4 @@ services:
 volumes:
   postgres-data:
   rabbitmq-data:
+  redis-data:
